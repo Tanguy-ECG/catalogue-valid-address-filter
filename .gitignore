@@ -4,11 +4,6 @@
 
 # Ignore les dossiers
 __pycache__/
-.vscode/
-.idea/
-*.pyc
-*.pyo
-*.pyd
 
 # Ignore les dossiers spécifiques
 HV/
