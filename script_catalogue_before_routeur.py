@@ -180,7 +180,8 @@ df_filtrage["street"] = df_filtrage["street"].str.replace("'", " ")
 ## address_1
 # Mettre tout en majusucle sans accent
 df_filtrage["address_1"] = df_filtrage["address_1"].apply(lambda x: unidecode(x).upper()).str.strip()
-
+## address_2
+df_filtrage["address_2"] = df_filtrage["address_2"].apply(lambda x: unidecode(x).upper()).str.strip()
 
 ### Nettoyage final
 
@@ -274,13 +275,15 @@ df_catalogue_before_routeur = df_catalogue_before_routeur.rename(
         "language_cd": "ECLATE"
     })
 
-df_catalogue_before_routeur["MSF_NCLI"] = "FRANCE"
-
 df_catalogue_before_routeur.drop(
-    "score", axis = 1
+    ["score", "email"], axis = 1
 ).head(lines_nb).to_excel(
     path + final_file_name + ".xlsx",
     index=False
 )
 
 print("Export réussi. {} lignes ont été filtrées.".format(df_init.shape[0] - df_conc.shape[0]))
+
+# retirer l'email du fichier final
+# fix issue MSF_NCLI to print id
+# uppercase for AD3 (address_2)
