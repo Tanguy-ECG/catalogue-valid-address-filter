@@ -257,10 +257,16 @@ df_concat = pd.concat([df_demandeurs, df_conc], ignore_index=True).sort_values(
     ).drop_duplicates('email')
 
 ### Nettoyage final
-## On met les prenoms noms dans une seule colonnes
+## On met les prenoms noms dans une seule colonne
 df_concat["NOM PRENOM"] = df_concat["nom"] + " " + df_concat["prenom"]
 df_catalogue_before_routeur = df_concat.drop(["prenom", "nom"], axis=1)
+
+## On met le language en minuscule
 df_catalogue_before_routeur["language_cd"] = df_catalogue_before_routeur["language_cd"].str.lower()
+
+## On met les codes postaux et ville dans une seule colonne
+df_catalogue_before_routeur["CODE POSTAL VILLE"] = df_catalogue_before_routeur["postal_code"].astype(str) + " " + df_catalogue_before_routeur["city"]
+df_catalogue_before_routeur = df_catalogue_before_routeur.drop(["postal_code", "city"], axis=1)
 
 df_catalogue_before_routeur = df_catalogue_before_routeur.rename(
     columns={
@@ -272,12 +278,15 @@ df_catalogue_before_routeur = df_catalogue_before_routeur.rename(
         "address_2": "AD3",
         "postal_code": "AD6",
         "country_cd": "PAYS",
-        "language_cd": "ECLATE"
+        "language_cd": "ECLATE",
+        "CODE POSTAL VILLE": "AD6"
     })
 
 df_catalogue_before_routeur.drop(
     ["score", "email"], axis = 1
-).head(lines_nb).to_excel(
+)[
+    ['MSF_NCLI', 'AD1', 'AD4', 'AD5', 'AD2', 'AD3', 'AD6', 'PAYS', 'ECLATE']
+  ].head(lines_nb).to_excel(
     path + final_file_name + ".xlsx",
     index=False
 )
