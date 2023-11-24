@@ -240,10 +240,23 @@ df_conc = df_conc[["customer_cd", "nom", "prenom", "email", "street", "address_1
 df_conc = df_conc.replace(['nan', 'NAN', np.nan], '')
 df_conc["score"] = df_conc["score"].astype(int)
 
+### NETTOYAGE DES DEMANDEURS
+## Mettre les codes postaux en taille 5
+df_demandeurs['postal_code'] = df_demandeurs['postal_code'].apply(
+    lambda x: '0' + str(x) if len(str(x))==4 else str(x)
+)
+## Retirer la ville dans street quand elle est présente
+city_in_street = df_demandeurs.apply(
+    lambda x: (x["city"] in str(x["street"])),
+    axis = 1
+)
+df_demandeurs.loc[city_in_street,"street"] = df_demandeurs[city_in_street].apply(lambda x: x["street"].replace(x["city"], ""), axis=1)
+
 ## On met toutes les colonnes en majuscule et sans accent
 df_demandeurs["nom"] = df_demandeurs["nom"].apply(lambda x: unidecode(x).upper()).str.strip()
 df_demandeurs["prenom"] = df_demandeurs["prenom"].apply(lambda x: unidecode(x).upper()).str.strip()
 df_demandeurs["language_cd"] = df_demandeurs["language_cd"].apply(lambda x: unidecode(x).upper()).str.strip()
+df_demandeurs["street"] = df_demandeurs["street"].apply(lambda x: unidecode(x).upper()).str.strip()
 
 ## Ajout d'un score aux demandeurs qui doit être le plus élevé de toute la base catalogue
 df_demandeurs["score"] = int("1" * (len(str(df_conc["score"].max()))+1))
