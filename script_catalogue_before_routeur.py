@@ -246,7 +246,7 @@ df_demandeurs["prenom"] = df_demandeurs["prenom"].apply(lambda x: unidecode(x).u
 df_demandeurs["language_cd"] = df_demandeurs["language_cd"].apply(lambda x: unidecode(x).upper()).str.strip()
 
 ## Ajout d'un score aux demandeurs qui doit être le plus élevé de toute la base catalogue
-df_demandeurs["score"] = int("1" * (len(str(df_init["score"].max()))+1))
+df_demandeurs["score"] = int("1" * (len(str(df_conc["score"].max()))+1))
 df_demandeurs["postal_locality"] = np.nan
 
 final_file_name = input("Nom du fichier final (sans extention) :")
@@ -283,7 +283,3 @@ df_catalogue_before_routeur.drop(
 )
 
 print("Export réussi. {} lignes ont été filtrées.".format(df_init.shape[0] - df_conc.shape[0]))
-
-# retirer l'email du fichier final
-# fix issue MSF_NCLI to print id
-# uppercase for AD3 (address_2)
