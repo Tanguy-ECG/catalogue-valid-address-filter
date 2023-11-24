@@ -278,8 +278,8 @@ df_demandeurs["prenom"] = df_demandeurs["prenom"].apply(lambda x: unidecode(x).u
 df_demandeurs["language_cd"] = df_demandeurs["language_cd"].apply(lambda x: unidecode(x).upper()).str.strip()
 df_demandeurs["street"] = df_demandeurs["street"].apply(lambda x: unidecode(x).upper()).str.strip()
 df_demandeurs["city"] = df_demandeurs["city"].apply(lambda x: unidecode(x).upper()).str.strip()
-df_demandeurs["address_1"] = df_demandeurs["address_1"].apply(lambda x: unidecode(x).upper() if pd.notna(x) else x).str.strip()
-df_demandeurs["address_2"] = df_demandeurs["address_2"].apply(lambda x: unidecode(x).upper() if pd.notna(x) else x).str.strip()
+df_demandeurs["address_1"] = df_demandeurs["address_1"].apply(lambda x: unidecode(x).upper() if isinstance(x, float) else x).str.strip()
+df_demandeurs["address_2"] = df_demandeurs["address_2"].apply(lambda x: unidecode(x).upper() if isinstance(x, float) else x).str.strip()
 
 ## Ajout d'un score aux demandeurs qui doit être le plus élevé de toute la base catalogue
 df_demandeurs["score"] = int("1" * (len(str(df_conc["score"].max()))+1))
