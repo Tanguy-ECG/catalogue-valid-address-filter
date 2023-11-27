@@ -1,19 +1,28 @@
 import pandas as pd
 
 df_HV = pd.read_csv(
-    "HV/HV_catalogs_cleaned.csv"
+    "HV/HV_catalogs_cleaned.csv",
+    dtype = {"postal_code": str}
 ).assign(segment='Homair')
 
 df_TH = pd.read_csv(
-    "TOHAPI/TOHAPI_catalogs_cleaned.csv"
+    "TOHAPI/TOHAPI_catalogs_cleaned.csv",
+    dtype = {"postal_code": str}
 ).assign(segment='Tohapi')
 
 
-## Retirer les Tohapi dans les Homair
-adress_Th_in_HV = df_TH.assign(nom_postal_code=df_TH['nom'] + df_TH['postal_code'].astype(str))["nom_postal_code"].isin(
-    df_HV.assign(nom_postal_code=df_HV['nom'] + df_HV['postal_code'].astype(str))["nom_postal_code"]
+### Retirer les Tohapi dans les Homair (doublons)
+## adresse mail en double
+adress_mail_Th_in_HV = df_TH["email"].isin(df_HV["email"])
+df_TH = df_TH[~((adress_mail_Th_in_HV) & (df_TH["type"] == "Non Demandeur"))]
+print("{} lignes supprimées pour doublon sur les emails".format(adress_mail_Th_in_HV.sum()))
+
+## combinaison NOM + adresse + code postal
+adress_Th_in_HV = df_TH.assign(nom_adress_postal_code=df_TH['nom'] + df_TH['street'] + df_TH['postal_code'].astype(str))["nom_adress_postal_code"].isin(
+    df_HV.assign(nom_adress_postal_code=df_HV['nom'] + df_HV['street'] + df_HV['postal_code'].astype(str))["nom_adress_postal_code"]
 )
 df_TH = df_TH[~((adress_Th_in_HV) & (df_TH["type"] == "Non Demandeur"))]
+print("{} lignes supprimées pour doublon sur le NOM + adresse + code postal".format(adress_Th_in_HV.sum()))
 
 ## Sélectionner 10000 lignes aléatoirement dans df_TH, les retirer de df_TH et les ajouter à df_HV.
 # Sélectionner 10,000 lignes aléatoires dans df_TH
@@ -43,7 +52,6 @@ df_HV = df_HV.sort_values(["sort", "score"], ascending=[True, False])
 
 
 ### Nettoyage final
-
 ###
 # HOMAIR
 ###
@@ -84,7 +92,7 @@ df_HV_catalogue_before_routeur = df_HV_catalogue_before_routeur[
 # TOHAPI
 ###
 ## On met les prenoms noms dans une seule colonne
-df_TH["NOM PRENOM"] = df_TH["nom"] + " " + df_TH["prenom"]
+df_TH["NOM PRENOM"] = (df_TH["nom"] + " " + df_TH["prenom"]).str.replace(".", "").str.replace("*", "")
 df_TH = df_TH.drop(["prenom", "nom"], axis=1)
 
 ## On met le language en minuscule
