@@ -30,7 +30,7 @@ df_demandeurs = pd.read_excel(
     sheet_name="{}_DEMANDEURS".format(brand),
     usecols=df_init.columns.drop(["score", "postal_locality", "main_partner"]),
     dtype={"address_1": str}
-)
+).fillna("")
 
 # Importation de la base des codes postaux
 df_codes_postaux = pd.read_csv(
@@ -251,10 +251,10 @@ df_demandeurs.loc[df_demandeurs["country_cd"].str.upper()=='FR', 'postal_code'] 
 ## street
 ## Retirer la ville dans street quand elle est présente
 city_in_street = df_demandeurs.apply(
-    lambda x: (x["city"] in str(x["street"])),
+    lambda x: (str(x["city"]) in str(x["street"])),
     axis = 1
 )
-df_demandeurs.loc[city_in_street,"street"] = df_demandeurs[city_in_street].apply(lambda x: x["street"].replace(x["city"], ""), axis=1)
+df_demandeurs[city_in_street].apply(lambda x: str(x["street"]).replace(str(x["city"]), ""), axis=1)
 
 ## Retirer le code postal dans street quand il est présent
 postal_code_in_street = df_demandeurs.apply(
@@ -268,8 +268,8 @@ df_clean['street'] = df_clean['street'].replace(r'^[^a-zA-Z-]*', '', regex=True)
 
 ## Mettre les adresses correctement quand street est un chiffre
 df_demandeurs.loc[(df_demandeurs['street'].astype(str).str.match(r'^\d+$')) | (df_demandeurs['street'].astype(str) ==""), "street"] = df_demandeurs[(df_demandeurs['street'].astype(str).str.match(r'^\d+$')) | (df_demandeurs['street'].astype(str) =="")].apply(
-    lambda x: (str(x["street"]) + str(x["address_1"])) if not pd.isna(x["address_1"]) else (str(x["street"]) + " " + x["address_2"]),
-    axis = 1 
+lambda x: (str(x["street"]) + str(x["address_1"])) if not pd.isna(x["address_1"]) else (str(x["street"]) + " " + str(x["address_2"])),
+axis = 1 
 )
 
 ## On met toutes les colonnes en majuscule et sans accent
@@ -278,8 +278,8 @@ df_demandeurs["prenom"] = df_demandeurs["prenom"].apply(lambda x: unidecode(x).u
 df_demandeurs["language_cd"] = df_demandeurs["language_cd"].apply(lambda x: unidecode(x).upper()).str.strip()
 df_demandeurs["street"] = df_demandeurs["street"].apply(lambda x: unidecode(x).upper()).str.strip()
 df_demandeurs["city"] = df_demandeurs["city"].apply(lambda x: unidecode(x).upper()).str.strip()
-df_demandeurs["address_1"] = df_demandeurs["address_1"].apply(lambda x: unidecode(x).upper() if isinstance(x, float) else x).str.strip()
-df_demandeurs["address_2"] = df_demandeurs["address_2"].apply(lambda x: unidecode(x).upper() if isinstance(x, float) else x).str.strip()
+df_demandeurs["address_1"] = df_demandeurs["address_1"].apply(lambda x: unidecode(x).upper() if isinstance(x, str) else x).str.strip()
+df_demandeurs["address_2"] = df_demandeurs["address_2"].apply(lambda x: unidecode(x).upper() if isinstance(x, str) else x).str.strip()
 
 ## Ajout d'un score aux demandeurs qui doit être le plus élevé de toute la base catalogue
 df_demandeurs["score"] = int("1" * (len(str(df_conc["score"].max()))+1))
