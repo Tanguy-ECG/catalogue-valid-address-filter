@@ -22,7 +22,7 @@ df_init = pd.read_excel(
     "country_cd == 'FR'" # On filtre que sur les français
     ).drop_duplicates( # On retire les doublons par rapport au mail
         subset=['email']
-        )
+        ).fillna("")
 
 # Importation de la base des demandeurs
 print("Les colonnes du fichier des demandeurs doivent être incluses dans celle du scoring à l'exception de ['score', 'postal_locality', 'main_partner']")
@@ -53,18 +53,7 @@ print("Début du process de nettoyage de la base.")
 ### Nettoyage de la base de données
 df_clean = df_init.drop(
             "main_partner", axis=1
-        )
-
-## city
-# Supprimer les caractères non alphabétiques avant la première lettre dans la colonne 'city'
-df_clean['city'] = df_clean['city'].replace(r'^[^a-zA-Z-]*', '', regex=True)
-
-# Supprimer ce qui n'est pas une lettre, un espace ou un tiret dans la colonne 'city'
-df_clean['city'] = df_clean['city'].str.replace(r'[^a-zA-Z -]+', '', regex=True).replace("-", " ").str.strip()
-
-# Supprimer les doubles espaces dans citu
-df_clean['city'] = df_clean['city'].str.replace("  ", " ")
-
+        ).fillna("")
 ## street
 # Retirer les "\t"
 df_clean['street'] = df_clean['street'].str.replace("\t", "")
@@ -84,7 +73,23 @@ correspondance = {
     'à': '0'
 }
 
-df_clean.loc[df_clean['street'].str.lower().str.contains(regex_pattern), "street"] = df_clean.loc[df_clean['street'].str.lower().str.contains(regex_pattern), "street"].str.translate(str.maketrans(correspondance))
+mask = (
+    df_clean['street'].str.lower().str.contains(regex_pattern) & 
+    ~df_clean['street'].isna()
+)
+
+## city
+
+df_clean.loc[mask, "street"] = df_clean.loc[mask, "street"].str.translate(str.maketrans(correspondance))
+
+# Supprimer les caractères non alphabétiques avant la première lettre dans la colonne 'city'
+df_clean['city'] = df_clean['city'].replace(r'^[^a-zA-Z-]*', '', regex=True)
+
+# Supprimer ce qui n'est pas une lettre, un espace ou un tiret dans la colonne 'city'
+df_clean['city'] = df_clean['city'].str.replace(r'[^a-zA-Z -]+', '', regex=True).replace("-", " ").str.strip()
+
+# Supprimer les doubles espaces dans citu
+df_clean['city'] = df_clean['city'].str.replace("  ", " ")
 
 # Mettre tout sans accent
 df_clean["street"] = df_clean["street"].apply(lambda x: unidecode(x)).str.strip()
@@ -102,7 +107,7 @@ print("Début du process de filtrage de la base.")
 
 ## postal_code
 # Supprimer les codes postaux qui n'ont pas une taille de 5
-df_filtrage = df_clean[df_clean["postal_code"].apply(lambda x: len(str(x).strip()) == 5)]
+df_filtrage = df_clean.fillna("")[df_clean["postal_code"].apply(lambda x: len(str(x).strip()) == 5)]
 
 ## city
 # Supprimer les villes vides (suite au nettoyage de la base cela est <=> la ville ne contenait aucune lettre, espace ou tiret)
@@ -271,49 +276,29 @@ df_demandeurs = df_demandeurs[df_demandeurs.apply(lambda row: len(row['street'] 
 df_demandeurs["score"] = int("1" * (len(str(df_conc["score"].max()))+1))
 df_demandeurs["postal_locality"] = np.nan
 
-final_file_name = input("Nom du fichier final (sans extention) :")
+### Concaténer les demandeurs et non demandeurs
+## Ajout d"une colonne pour différencier les non demandeursd des demandeurs
+df_demandeurs["type"] = "Demandeur"
+df_conc["type"] = "Non Demandeur"
+
+# final_file_name = input("Nom du fichier final {} (avec extention csv ou xlsx) :".format(brand))
 lines_nb = int(input("Nombre de lignes à extraire :"))
 
-df_concat = pd.concat([df_demandeurs, df_conc], ignore_index=True).sort_values(
+df_catalogs_cleaned = pd.concat([df_demandeurs, df_conc], ignore_index=True).sort_values(
     "score", ascending=False
     ).drop_duplicates('email')
 
-### Nettoyage final
-## On met les prenoms noms dans une seule colonne
-df_concat["NOM PRENOM"] = df_concat["nom"] + " " + df_concat["prenom"]
-df_catalogue_before_routeur = df_concat.drop(["prenom", "nom"], axis=1)
+if final_file_name.split(".")[-1] == "xlsx":
+    df_catalogs_cleaned.head(lines_nb).to_excel(
+        path + final_file_name,
+        index=False
+    )
 
-## On met le language en minuscule
-df_catalogue_before_routeur["language_cd"] = df_catalogue_before_routeur["language_cd"].str.lower()
-
-## On met les codes postaux et ville dans une seule colonne
-df_catalogue_before_routeur["CODE POSTAL VILLE"] = df_catalogue_before_routeur["postal_code"].astype(str) + " " + df_catalogue_before_routeur["city"]
-df_catalogue_before_routeur = df_catalogue_before_routeur.drop(["postal_code", "city"], axis=1)
-
-## On met le pays en 2 lettres
-df_catalogue_before_routeur["country_cd"] = df_catalogue_before_routeur["country_cd"].str.slice(0, 2).str.upper()
-
-df_catalogue_before_routeur = df_catalogue_before_routeur.rename(
-    columns={
-        "customer_cd": "MSF_NCLI",
-        "NOM PRENOM": "AD1",
-        "street": "AD4",
-        "postal_locality": "AD5",
-        "address_1": "AD2",
-        "address_2": "AD3",
-        "country_cd": "PAYS",
-        "language_cd": "ECLATE",
-        "CODE POSTAL VILLE": "AD6"
-    })
-
-df_catalogue_before_routeur.drop(
-    ["score", "email"], axis = 1
-)[
-    ['MSF_NCLI', 'AD1', 'AD4', 'AD5', 'AD2', 'AD3', 'AD6', 'PAYS', 'ECLATE']
-  ].head(lines_nb).to_excel(
-    path + final_file_name + ".xlsx",
-    index=False
-)
+if final_file_name.split(".")[-1] == "csv":
+    df_catalogs_cleaned.head(lines_nb).to_csv(
+        path + final_file_name ,
+        index=False
+    )
 
 print("Export réussi. {} ({:.1%}) lignes ont été filtrées.".format(
     df_init.shape[0] - df_conc.shape[0],
